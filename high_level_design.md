@@ -1,3 +1,8 @@
+Real Time Fact Monitoring
+-------------------------
+RTFM is (or rather will be) a series of components to enable real-time 
+[fact](https://github.com/puppetlabs/facter) monitoring and visualization.
+
 Design
 ------
 
