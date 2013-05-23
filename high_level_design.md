@@ -4,34 +4,42 @@ Design
 The high-level design should look something like the block diagram below:
 
 ```
-          [facts]
-client   --------->   queue
+                 
+facter               
  
-                        |
-                        | [payload]
-                        |
-                        v 
+  | 
+  | [facts]
+  | 
+  v
 
-                    processor  -------->  DB
+spool   --------->   submit
+                     daemon                DB   ---------------------|
+                                                                     |
+                        |                   ^                        |
+                        |                   |                        |
+                        |                   |                        |
+                        v                   |                        |
+                                                                     | [history]
+                      queue  -------->  processor                    |
+                                                                     |
+                                            |                        |
+                                            | [notification          |
+                                            |  w/ facts]             |
+                                            v                        v
 
-                        |
-                        | [notification w/ facts]
-                        |
-                        V
+                                          topic   -------------> visualizer
+                                                    [latest]
 
-                      topic
 
-                        |
-                        | [payload]
-                        |
-                        V
-
-                    visualizer
 
 ```
 
 A client machine will gather its facts. These facts will be attached to a message,
 along with a timestamp, and submitted to a queue for processing.
+
+With the spool and submission daemon, the clients can operate disconnected from
+the network or if the message queue, and when service is resumed the historical
+data is processed.
 
 Processors will retrieve messages from the queue and add them to the database.
 We have a couple simple considerations:
