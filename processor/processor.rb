@@ -32,7 +32,7 @@ client.subscribe(queue_name, {:ack => "client", "activemq.prefetchSize" => 1, "a
   end
   json["facts"].each do |k, v|
     db_conn.exec_prepared(statement_name, [run_time, k, v])
-    client.publish topic_prefix+k, json["timestamp"].to_s
+    client.publish topic_prefix+k, { :time => json["timestamp"], :value => v}.to_json
   end
   client.acknowledge(msg)
   puts "done writing to db and topics"
