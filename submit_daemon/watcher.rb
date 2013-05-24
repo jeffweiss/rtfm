@@ -19,6 +19,8 @@ notifier.watch(dir, :moved_to, :close_write) do |event|
     puts "retrieved facts from #{contents_as_json["timestamp"]}"
     client.publish queue_name, contents, {:persistent => true}
     puts "  -- published to #{queue_name}"
+    File.unlink(filename)
+    puts "  -- deleted #{filename}"
   rescue
     puts "error reading contents of #{filename}"
   end
