@@ -10,7 +10,7 @@ client = Stomp::Client.new(stomp_login_hash)
 queue_name = "/queue/rtfm"
 topic_prefix = "/topic/"
 
-db_conn = PG.connect( :dbname => 'rtfm', :user => 'rtfm', :password => 'rtfm', :host => 'localhost' )
+db_conn = PG.connect( :dbname => 'rtfm', :user => 'rtfm', :password => 'rtfm', :host => ARGV[2] )
 
 statement_name = 'fact_insert'
 
