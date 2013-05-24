@@ -11,8 +11,6 @@ topic_prefix = "/topic/"
 
 db_conn = PG.connect( :dbname => 'rtfm', :user => 'rtfm', :password => 'rtfm', :host =>     ARGV[2] )
 
-statement_name = 'fact_insert'
-
 client.subscribe(topic_prefix+ARGV[3]) do |msg|
   puts msg.body
 end
