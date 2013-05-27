@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>D3 Page Template</title>
+    <script type="text/javascript" src="../d3/d3.v3.js"></script>
+    <style type="text/css">
+      div.bar {
+        display: inline-block;
+        width: 20px;
+        height: 75px;
+        background-color: teal;
+        margin-right: 2px;
+      }
+      rect {
+        -moz-transition: all 0.3s;
+        -o-transition: all 0.3s;
+        -webkit-transition: all 0.3s;
+        transition: all 0.3s;
+      }
+      rect:hover {
+        fill: orange;
+      }
+      #tooltip {
+        position: absolute;
+        width: 200px;
+        height: auto;
+        padding: 10px;
+        background-color: white;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+      }
+      #tooltip.hidden {
+        display: none;
+      }
+      #tooltip p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 16px;
+        line-height: 20px;
+      }
+    </style>
+    <body>
+      <div id="tooltip" class="hidden">
+        <p><strong><%=current_fact%></strong></p>
+        <p><span id="timestamp">100</span></p>
+        <p><span id="value">100</span></p>
+      </div>
+      <script type="text/javascript">
+        
+        var w = 600;
+        var h = 250;
+        
+        var maxValue = 25;
+        
+        var sortOrder = false;
+
+        var svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", w)
+                    .attr("height", h);
+        var xScale = d3.scale.ordinal()
+                       .rangeRoundBands([0, w], 0.05);
+        var yScale = d3.scale.linear()
+                             .range([0, h]);
+        var key = function(d) {
+          return new Date(parseFloat(d[0])*1000);
+        }
+
+        var value = function(d) {
+          return parseFloat(d[1]);
+        }
+
+        d3.json("/fact/<%= current_fact%>", function(dataset) {
+          xScale.domain(d3.range(dataset.length));
+          yScale.domain([0, d3.max(dataset, value)]);
+
+          console.log(dataset);
+          svg.selectAll("rect")
+           .data(dataset, key)
+           .enter()
+           .append("rect")
+           .attr("x", function(d, i){
+             return xScale(i);
+           })
+           .attr("y", function(d) {
+             return h - yScale(value(d));
+           })
+           .attr("width", xScale.rangeBand())
+           .attr("height", function(d) {
+             return yScale(value(d));
+           })
+           .attr("fill", function(d) {
+             return "rgb(0, 0, " + value(d).toFixed() + ")";
+           })
+           .on("click", function(d) {
+             sortBars();
+           })
+           .on("mouseover", function(d) {
+             var xPosition = parseFloat(d3.select(this).attr("x")) + xScale.rangeBand() / 2;
+             var yPosition = parseFloat(d3.select(this).attr("y")) / 2 + h / 2;
+             
+             var tooltip = d3.select("#tooltip")
+               .style("left", xPosition + "px")
+               .style("top", yPosition + "px");
+
+             tooltip.select("#value")
+               .text(value(d));
+             tooltip.select("#timestamp")
+               .text(key(d));
+               
+             d3.select("#tooltip").classed("hidden", false);
+             
+           })
+           .on("mouseout", function() {
+             d3.select("#tooltip").classed("hidden", true);
+           });
+        });
+        
+        
+        var duration = 500;
+        var ease = "cubic-in-out";
+        
+        d3.selectAll("p")
+          .on("click", function() {
+            var paragraphID = d3.select(this).attr("id");
+            if (paragraphID == "add") {
+              var newNumber = Math.floor(Math.random() * maxValue);
+              var lastKeyValue = dataset[dataset.length - 1].key;
+              dataset.push({
+                key: lastKeyValue + 1,
+                value: newNumber
+              });
+            } else {
+              dataset.shift();              
+            }
+            
+            xScale.domain(d3.range(dataset.length));
+            yScale.domain([0, d3.max(dataset, function(d) { return value(d); })]);
+            
+            var bars = svg.selectAll("rect")
+                          .data(dataset, key);
+            bars.exit()
+                .transition()
+                .duration(duration)
+                .attr("x", -xScale.rangeBand())
+                .remove();
+
+            bars.enter()
+                .append("rect")
+                .attr("x", w)
+                .attr("y", function(d) {
+                  return h - yScale(value(d));
+                })
+                .attr("width", xScale.rangeBand())
+                .attr("height", function(d) {
+                  return yScale(value(d));
+                })
+                .attr("fill", function(d) {
+                  return "rgb(0, 0, " + value(d).toFixed() + ")";
+                })
+                .on("click", function(d) {
+                  sortBars();
+                })
+                .on("mouseover", function(d) {
+                  var xPosition = parseFloat(d3.select(this).attr("x")) + xScale.rangeBand() / 2;
+                  var yPosition = parseFloat(d3.select(this).attr("y")) / 2 + h / 2;
+
+                  d3.select("#tooltip")
+                    .style("left", xPosition + "px")
+                    .style("top", yPosition + "px")
+                    .select("#value")
+                    .text(value(d));
+
+                  d3.select("#tooltip").classed("hidden", false);
+
+                })
+                .on("mouseout", function() {
+                  d3.select("#tooltip").classed("hidden", true);
+                });
+            
+            bars.transition()
+                .duration(duration)
+                .attr("x", function(d, i){
+                  return xScale(i);
+                })
+                .attr("y", function(d) {
+                  return h - yScale(value(d));
+                })
+                .attr("width", xScale.rangeBand())
+                .attr("height", function(d) {
+                  return yScale(value(d));
+                })
+                .attr("fill", function(d) {
+                  return "rgb(0, 0, " + value(d).toFixed() + ")";
+                });          
+          });
+          
+          var sortBars = function() {
+            sortOrder = !sortOrder;
+            
+            svg.selectAll("rect")
+               .sort(function(a, b) {
+                 if (sortOrder) {
+                   return d3.ascending(value(a), value(b));
+                 } else {
+                   return d3.descending(value(a), value(b));
+                 }
+               })
+               .transition()
+               .delay(function(d, i) {
+                 return i * 50;
+               })
+               .duration(1000)
+               .attr("x", function(d, i) {
+                 return xScale(i);
+               });
+          };
+      </script>
+      <div></div>
+    </body>
+  </head>
+</html>
