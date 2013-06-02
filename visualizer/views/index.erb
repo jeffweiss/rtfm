@@ -6,6 +6,15 @@
     <script type="text/javascript" src="/d3/d3.v3.js"></script>
     <link rel="stylesheet" type="text/css" href="/colorbrewer/colorbrewer.css">
     <style type="text/css">
+      svg {
+        font: 10px sans-serif;
+      }
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
       div.bar {
         display: inline-block;
         width: 20px;
@@ -62,27 +71,34 @@
         socket.onclose = function(evt) {
         };
         
-        var w = 600;
-        var h = 250;
+        var margin = { top: 10, right: 10, bottom: 20, left: 50 };
+        var w = 600 - margin.left - margin.right;
+        var h = 250 - margin.top - margin.bottom;
         
         var maxValue = 25;
         
         var sortOrder = false;
+        
+        var normalize = false;
 
         var svg = d3.select("body")
                     .append("svg")
                     .attr("width", w)
                     .attr("height", h);
-        svg.classed("Blues", true);
+                    
+        var chart = svg.append("g")
+                       .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+        chart.classed("Blues", true);
 
         var xScale = d3.scale.ordinal()
                        .rangeRoundBands([0, w], 0.05);
         var yNormalize = d3.scale.linear().range([0.05, 1]);
         var yScale = d3.scale.pow().exponent(.75)
                              .domain([0, 1])
-                             .range([0, h]);
+                             .range([h, 0]);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
 
-        var colorScale = d3.scale.quantile().range(d3.range(3,9));
+        var colorScale = d3.scale.quantile().range(d3.range(4,9));
 
         var key = function(d) {
           return new Date(parseFloat(d[0])*1000);
@@ -97,19 +113,39 @@
         var duration = 1000;
         var ease = "cubic-in-out";
         
+        var height = function(d) {
+          return h - ( normalize ? yScale(yNormalize(value(d))) : yScale(value(d)) );
+        }
+        
+        var yStart = function(d) {
+          return ( normalize ? yScale(yNormalize(value(d))) : yScale(value(d)) );
+        }
+        
+        var updateDomains = function(dataset) {
+          xScale.domain(d3.range(dataset.length));
+          if (normalize) {
+            yNormalize.domain(d3.extent(dataset, value));
+          } else {
+            var min = d3.min(dataset, value);
+            var max = d3.max(dataset, value);
+            var diff = max - min;
+            if (max < h) min = 0;
+            
+            yScale.domain([min * .998, max]).nice();
+          }
+          colorScale.domain(dataset.map(value));
+        }
+        
         d3.json("/fact/<%= current_fact%>", function(dataset) {
           dataset.sort(function(a,b) {return d3.ascending(key(a), key(b)); });
           socket.onmessage = function(evt) {
             dataset.push(JSON.parse(evt.data));
             dataset.shift();
 
-            xScale.domain(d3.range(dataset.length));
-            //yScale.domain([0, d3.max(dataset, value)]);
-            yNormalize.domain(d3.extent(dataset, value));
-            colorScale.domain(dataset.map(value));
+            updateDomains(dataset);
             
-            var bars = svg.selectAll("rect")
-                          .data(dataset, key);
+            var bars = chart.selectAll("rect")
+                            .data(dataset, key);
             bars.exit()
                 .transition()
                 .attr("x", -xScale.rangeBand())
@@ -118,13 +154,9 @@
             bars.enter()
                 .append("rect")
                 .attr("x", w)
-                .attr("y", function(d) {
-                  return h - yScale(yNormalize(value(d)));
-                })
+                .attr("y", yStart)
                 .attr("width", xScale.rangeBand())
-                .attr("height", function(d) {
-                  return yScale(yNormalize(value(d)));
-                })
+                .attr("height", height)
                 .attr("class", function(d) { return "q"+colorScale(value(d))+"-9";})
                 .on("click", function(d) {
                   sortBars();
@@ -154,35 +186,28 @@
                 .attr("x", function(d, i){
                   return xScale(i);
                 })
-                .attr("y", function(d) {
-                  return h - yScale(yNormalize(value(d)));
-                })
+                .attr("y", yStart)
                 .attr("width", xScale.rangeBand())
-                .attr("height", function(d) {
-                  return yScale(yNormalize(value(d)));
-                })
+                .attr("height", height)
                 .attr("class", function(d) { return "q"+colorScale(value(d))+"-9";});
           };
 
-          xScale.domain(d3.range(dataset.length));
-          //yScale.domain([0, d3.max(dataset, value)]);
-          yNormalize.domain(d3.extent(dataset, value));
-          colorScale.domain(dataset.map(value));
+          updateDomains(dataset);
 
-          svg.selectAll("rect")
+          chart.append("g")
+             .attr("class", "x axis")
+             .call(yAxis);
+
+          chart.selectAll("rect")
            .data(dataset, key)
            .enter()
            .append("rect")
            .attr("x", function(d, i){
              return xScale(i);
            })
-           .attr("y", function(d) {
-             return h - yScale(yNormalize(value(d)));
-           })
+           .attr("y", yStart)
            .attr("width", xScale.rangeBand())
-           .attr("height", function(d) {
-             return yScale(yNormalize(value(d)));
-           })
+           .attr("height", height)
            .sort(function(a,b) { return d3.descending(key(a), key(b));} )
            .attr("class", function(d) { return "q"+colorScale(value(d))+"-9";})
            .on("click", function(d) {
@@ -212,7 +237,7 @@
         var sortBars = function() {
           sortOrder = !sortOrder;
           
-          svg.selectAll("rect")
+          chart.selectAll("rect")
              .sort(function(a, b) {
                if (sortOrder) {
                  return d3.ascending(value(a), value(b));
