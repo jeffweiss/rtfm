@@ -26,7 +26,7 @@ client.subscribe(queue_name, {:ack => "client", "activemq.prefetchSize" => 1, "a
   puts "  -- initial run at #{run_time}"
   puts "  -- enqueued at    #{enqueue_time}"
   puts "  -- now            #{now}"
-  puts "  == total time = #{now - run_time}ms" 
+  puts "  == total time = #{now - run_time}ms"
   File.open("/tmp/#{Time.now.to_f}.json", "w") do |f|
     f.puts msg.body
   end
