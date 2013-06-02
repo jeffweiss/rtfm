@@ -9,8 +9,6 @@ stomp_login_hash = {
 client = Stomp::Client.new(stomp_login_hash)
 topic_prefix = "/topic/"
 
-db_conn = PG.connect( :dbname => 'rtfm', :user => 'rtfm', :password => 'rtfm', :host =>     ARGV[2] )
-
 client.subscribe(topic_prefix+ARGV[3]) do |msg|
   puts msg.body
 end
