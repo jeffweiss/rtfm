@@ -28,7 +28,7 @@
         -webkit-transition: all 0.3s;
         transition: all 0.3s;
       }
-      rect:hover {
+      rect.q3-9:hover,rect.q4-9:hover,rect.q5-9:hover,rect.q6-9:hover,rect.q7-9:hover,rect.q8-9:hover {
         fill: orange;
       }
       #tooltip {
@@ -71,9 +71,12 @@
         socket.onclose = function(evt) {
         };
         
+        var fullwidth = 600,
+            fullheight = 250;
+
         var margin = { top: 10, right: 10, bottom: 20, left: 50 };
-        var w = 600 - margin.left - margin.right;
-        var h = 250 - margin.top - margin.bottom;
+        var w = fullwidth - margin.left - margin.right;
+        var h = fullheight - margin.top - margin.bottom;
         
         var maxValue = 25;
         
@@ -83,8 +86,8 @@
 
         var svg = d3.select("body")
                     .append("svg")
-                    .attr("width", w)
-                    .attr("height", h);
+                    .attr("width", fullwidth)
+                    .attr("height", fullheight);
                     
         var chart = svg.append("g")
                        .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
